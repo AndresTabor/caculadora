@@ -1,23 +1,109 @@
-import logo from './logo.svg';
-import './App.css';
+/* eslint-disable no-eval */
+import Screen from "./Components/Screen.js";
+import Keys from "./Components/Keys.js";
+import React, { useState, useEffect } from "react";
 
 function App() {
+  const operator = /[*+/-]{1,2}/;
+  const [minusEmbed, setExp] = useState("");
+  const [clr, setClr] = useState(false);
+  const [result, setResult] = useState("0");
+  const [decFlag, setFlag] = useState(false);
+  let lastInput = result[result.length - 1];
+
+  const handleDecimal = (e) => {
+    if (e.target.value === ".") {
+      setResult(result);
+    } else if (e.target.value.match(operator)) {
+      setFlag(false);
+      setResult(result + e.target.value);
+    } else {
+      setResult(result + e.target.value);
+    }
+  };
+  useEffect(() => {
+    if (result.length > 20) {
+      setResult("Max Limit");
+      const btns = [].slice.call(document.getElementsByClassName("btn"));
+      for (let i = 0; i < btns.length; i++) {
+        btns[i].disabled = true;
+      }
+      setTimeout(() => {
+        for (let i = 0; i < btns.length; i++) {
+          btns[i].disabled = false;
+        }
+        setResult("0");
+      }, 800);
+    }
+  }, [result]);
+  const handleClick = (e) => {
+    //after pressing calculate to set the display screen
+    if (clr) {
+      setClr(false);
+      document.getElementById("display").classList.remove("text-success");
+      if (!e.target.value.match(operator)) {
+        if (e.target.value === ".") {
+          setFlag(true);
+        }
+        setResult(e.target.value);
+        return;
+      }
+    }
+    if (e.target.value === ".") {
+      setFlag(true);
+    }
+    //To replace operator  to avoid multiple ooperator in sequence
+    if (lastInput.match(operator) && e.target.value.match(operator)) {
+      //To avoid *-+ sequence
+      if (e.target.value === "-" && lastInput !== "-") {
+        setResult(result + e.target.value);
+        setExp(lastInput + e.target.value);
+      } else {
+        if (minusEmbed !== "") {
+          setResult(result.replace(minusEmbed, e.target.value));
+          setExp("");
+        } else {
+          setResult(result.replace(lastInput, e.target.value));
+        }
+      }
+    } else if (result === "0") {
+      setResult(e.target.value);
+    } else {
+      if (decFlag) {
+        handleDecimal(e);
+      } else {
+        setResult(result + e.target.value);
+      }
+    }
+  };
+  const Clear = () => {
+    setFlag(false);
+    document.getElementById("display").classList.remove("text-success");
+    setResult("0");
+  };
+  const Calculate = (e) => {
+    setClr(true);
+    if (result === "0") {
+      setResult("0");
+    } else {
+      try {
+        setResult(eval(result).toString());
+        document.getElementById("display").classList.add("text-success");
+      } catch (e) {
+        setResult("Invalid");
+        setTimeout(() => {
+          setResult("0");
+        }, 500);
+      }
+    }
+  };
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <h1 className="text-center text-white mt-5">Calculadora</h1>
+      <div className="calc-box">
+        <Screen value={result} />
+        <Keys handleClick={handleClick} Clear={Clear} Calculate={Calculate} />
+      </div>
     </div>
   );
 }
